@@ -7,9 +7,12 @@ import os
 import re
 import shutil
 
+import exifread
+
 logger = logging.getLogger(__name__)
 
-DROPBOX_RE = re.compile(r'''
+DROPBOX_RE = re.compile(
+r'''
 ^
 (?P<year>\d\d\d\d)-
 (?P<month>\d\d)-
@@ -23,7 +26,8 @@ DROPBOX_RE = re.compile(r'''
 $
 ''', re.X)
 
-SAMSUNG_RE = re.compile(r'''
+SAMSUNG_RE = re.compile(
+r'''
 ^(?:IMG|VID)_
 (?P<year>\d\d\d\d)
 (?P<month>\d\d)
@@ -37,6 +41,15 @@ _
 $
 ''', re.X)
 
+EXIF_DATETIME_RE = re.compile(
+r'''
+^(?P<year>\d\d\d\d):
+(?P<month>\d\d):
+(?P<day>\d\d)
+\ (?P<hour>\d\d):
+(?P<minute>\d\d):
+(?P<second>\d\d)
+$''', re.X)
 
 def mkdir_p(dir_path):
     try:
@@ -68,6 +81,22 @@ class Archiver(object):
             match.groupdict())
         return new_file_name, match.group('year'), match.group('month')
 
+    def exif_matcher(self, file_path, file_name):
+        with open(file_path, 'rb') as fh:
+            tags = exifread.process_file(fh)
+        # logger.debug('Exif: %s', "\n".join(sorted(tags.keys())))
+        tag = tags.get('EXIF DateTimeOriginal')
+        if tag and tag.field_type == 2:
+            logger.debug('datetime: %r', tag.values)
+            match = EXIF_DATETIME_RE.match(tag.values)
+            if match:
+                extension = os.path.splitext(file_name)[1].lower()
+                logger.debug('%r', match.groupdict())
+                new_file_name = '{year}-{month}-{day} {hour}.{minute}.{second}{extension}'.format(
+                    extension=extension, **match.groupdict())
+                return new_file_name, match.group('year'), match.group('month')
+        return None
+
     def archive_file(self, file_path, match_result):
         dest_file_name, year, month = match_result
 
@@ -84,7 +113,8 @@ class Archiver(object):
     def run(self):
         matchers = (
             self.dropbox_matcher,
-            self.samsung_matcher
+            self.samsung_matcher,
+            self.exif_matcher
         )
         for file_name in os.listdir(self.src_dir):
             file_path = os.path.join(self.src_dir, file_name)
@@ -99,6 +129,7 @@ class Archiver(object):
 
 def main(src_dir, archive_dir):
     logging.basicConfig(level=logging.DEBUG)
+    logging.getLogger('exifread').setLevel(logging.INFO)
     archiver = Archiver(src_dir, archive_dir)
     archiver.run()
 
