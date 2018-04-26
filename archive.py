@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
+import argparse
 import errno
 import logging
 import os
 import re
 import shutil
+import sys
 
 import exifread
 
@@ -127,11 +129,24 @@ class Archiver(object):
                     self.archive_file(file_path, result)
                     break
 
-def main(src_dir, archive_dir):
+def main(args):
     logging.basicConfig(level=logging.DEBUG)
     logging.getLogger('exifread').setLevel(logging.INFO)
-    archiver = Archiver(src_dir, archive_dir)
+    archiver = Archiver(args.source_dir, args.archive_dir)
     archiver.run()
 
+def parse_args(argv):
+    parser = argparse.ArgumentParser(description='Archive some photos')
+    parser.add_argument(
+        'source_dir', metavar='SRC_DIR',
+        help='the directory to source photos from'
+    )
+    parser.add_argument(
+        'archive_dir', metavar='DEST_DIR',
+        help='the directory to move photos to in a date-based hierarchy'
+    )
+    return parser.parse_args(argv[1:])
+
 if __name__ == "__main__":
-    main('.', '.')
+    args = parse_args(sys.argv)
+    main(args)
