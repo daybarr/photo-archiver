@@ -1,1 +1,1 @@
-ExifRead==1.4.2
+ExifRead==3.0.0
