@@ -3,6 +3,7 @@ import argparse
 import errno
 import logging
 import os
+import pathlib
 import re
 import shutil
 import sys
@@ -51,14 +52,6 @@ r'''
 (?P<second>\d\d)
 $''', re.X)
 
-def mkdir_p(dir_path):
-    try:
-        os.makedirs(dir_path)
-    except os.error as err:
-        if err.errno != errno.EEXIST:
-            raise
-        logger.debug('%s already exists', dir_path)
-
 class Archiver(object):
     def __init__(self, src_dir, archive_dir):
         self.src_dir = os.path.abspath(src_dir)
@@ -106,7 +99,7 @@ class Archiver(object):
 
         logger.info('Moving %s => %s', file_path, dest_file_path)
         logger.debug('Creating target dir %s', dest_dir_path)
-        mkdir_p(dest_dir_path)
+        pathlib.Path(dest_dir_path).mkdir(parents=True, exist_ok=True)
         logger.debug('Moving %s', file_path)
         shutil.move(file_path, dest_file_path)
 
