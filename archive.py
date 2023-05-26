@@ -77,7 +77,7 @@ class Archiver(object):
     def exif_matcher(self, file_path, file_name):
         with open(file_path, 'rb') as fh:
             tags = exifread.process_file(fh)
-        # logger.debug('Exif: %s', "\n".join(sorted(tags.keys())))
+        # logger.debug('Exif: %s', "\n  ".join(sorted(tags.keys())))
         tag = tags.get('EXIF DateTimeOriginal')
         if tag and tag.field_type == 2:
             logger.debug('datetime: %r', tag.values)
